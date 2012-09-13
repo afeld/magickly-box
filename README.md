@@ -6,11 +6,12 @@ Very much in-progress.
 
 1. Download latest Vagrant from http://vagrantup.com/
 2. Download latest VirtualBox from https://www.virtualbox.org/wiki/Downloads
+3. Run:
 
-    vagrant gem install vagrant-vbguest
-    gem install librarian
-    librarian-chef install
-    vagrant up
+        vagrant gem install vagrant-vbguest
+        gem install librarian
+        librarian-chef install
+        vagrant up
 
 ## Resources
 
