@@ -29,7 +29,7 @@ Vagrant::Config.run do |config|
 
   # Forward a port from the guest to the host, which allows for outside
   # computers to access the VM, whereas host only networking does not.
-  # config.vm.forward_port 80, 8080
+  # config.vm.forward_port 3000, 8080
 
   # Share an additional folder to the guest VM. The first argument is
   # an identifier, the second is the path on the guest to mount the
@@ -63,16 +63,66 @@ Vagrant::Config.run do |config|
   # path, and data_bags path (all relative to this Vagrantfile), and adding 
   # some recipes and/or roles.
   #
-  # config.vm.provision :chef_solo do |chef|
-  #   chef.cookbooks_path = "../my-recipes/cookbooks"
-  #   chef.roles_path = "../my-recipes/roles"
-  #   chef.data_bags_path = "../my-recipes/data_bags"
-  #   chef.add_recipe "mysql"
-  #   chef.add_role "web"
-  #
-  #   # You may also specify custom JSON attributes:
-  #   chef.json = { :mysql_password => "foo" }
-  # end
+  config.vm.provision :chef_solo do |chef|
+    # chef.cookbooks_path = "../my-recipes/cookbooks"
+    # chef.roles_path = "../my-recipes/roles"
+    # chef.data_bags_path = "../my-recipes/data_bags"
+    # chef.add_recipe "mysql"
+    # chef.add_role "web"
+
+    chef.add_recipe 'nginx'
+    chef.add_recipe 'rvm::vagrant'
+    chef.add_recipe 'rvm::system'
+
+    # You may also specify custom JSON attributes:
+    chef.json = {
+      # based on config example from https://github.com/gchef/nginx-cookbook#apps
+      nginx: {
+        distribution: 'precise',
+        components: ['main'],
+        apps: {
+          magickly: {
+            listen: [80],
+            locations: [
+              {
+                path: '@magickly',
+                directives: [
+                  "proxy_set_header X-Forwarded-Proto $scheme;",
+                  "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
+                  "proxy_set_header X-Real-IP $remote_addr;",
+                  "proxy_set_header Host $host;",
+                  "proxy_redirect off;",
+                  "proxy_http_version 1.1;",
+                  "proxy_set_header Connection '';",
+                  "proxy_pass http://magickly;"
+                ]
+              }
+            ],
+            try_files:   [
+              '$uri @magickly'
+            ],
+            upstreams: [
+              {
+                name: 'magickly',
+                servers: [
+                  '127.0.0.1:3000',
+                  '127.0.0.1:3001',
+                  '127.0.0.1:3002'
+                ]
+              }
+            ]
+          }
+        }
+      },
+      rvm: {
+        global_gems: [
+          { name: 'thin' }
+        ]
+      }
+    }
+  end
+
+  config.vm.provision :shell, inline: "thin start --servers 3"
 
   # Enable provisioning with chef server, specifying the chef server URL,
   # and the path to the validation key (relative to this Vagrantfile).

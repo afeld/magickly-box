@@ -1,5 +1,7 @@
 # Magickly Machine Image
 
+Very much in-progress.
+
 ## Setup
 
 1. Download latest Vagrant from http://vagrantup.com/
@@ -8,6 +10,7 @@
     vagrant gem install vagrant-vbguest
     gem install librarian
     librarian-chef install
+    vagrant up
 
 ## Resources
 
