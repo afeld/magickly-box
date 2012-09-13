@@ -29,7 +29,7 @@ Vagrant::Config.run do |config|
 
   # Forward a port from the guest to the host, which allows for outside
   # computers to access the VM, whereas host only networking does not.
-  # config.vm.forward_port 3000, 8080
+  config.vm.forward_port 80, 8080
 
   # Share an additional folder to the guest VM. The first argument is
   # an identifier, the second is the path on the guest to mount the
@@ -71,58 +71,25 @@ Vagrant::Config.run do |config|
     # chef.add_role "web"
 
     chef.add_recipe 'nginx'
-    chef.add_recipe 'rvm::vagrant'
-    chef.add_recipe 'rvm::system'
 
     # You may also specify custom JSON attributes:
-    chef.json = {
-      # based on config example from https://github.com/gchef/nginx-cookbook#apps
-      nginx: {
-        distribution: 'precise',
-        components: ['main'],
-        apps: {
-          magickly: {
-            listen: [80],
-            locations: [
-              {
-                path: '@magickly',
-                directives: [
-                  "proxy_set_header X-Forwarded-Proto $scheme;",
-                  "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
-                  "proxy_set_header X-Real-IP $remote_addr;",
-                  "proxy_set_header Host $host;",
-                  "proxy_redirect off;",
-                  "proxy_http_version 1.1;",
-                  "proxy_set_header Connection '';",
-                  "proxy_pass http://magickly;"
-                ]
-              }
-            ],
-            try_files:   [
-              '$uri @magickly'
-            ],
-            upstreams: [
-              {
-                name: 'magickly',
-                servers: [
-                  '127.0.0.1:3000',
-                  '127.0.0.1:3001',
-                  '127.0.0.1:3002'
-                ]
-              }
-            ]
-          }
-        }
-      },
-      rvm: {
-        global_gems: [
-          { name: 'thin' }
-        ]
-      }
-    }
+    # chef.json = {
+    #   # based on config example from https://github.com/gchef/nginx-cookbook#apps
+    #   nginx: {
+    #     dir: '/vagrant/conf'
+    #   }
+    # }
   end
 
-  config.vm.provision :shell, inline: "thin start --servers 3"
+  config.vm.provision :shell, inline: [
+    # http://lenni.info/blog/2012/05/installing-ruby-1-9-3-on-ubuntu-12-04-precise-pengolin/
+    "apt-get -y update",
+    "apt-get -y install ruby1.9.1 ruby1.9.1-dev rubygems1.9.1 irb1.9.1 ri1.9.1 rdoc1.9.1 build-essential libopenssl-ruby1.9.1 libssl-dev zlib1g-dev", # this is actually 1.9.3
+    "gem install thin",
+    "thin start --servers 3 -c /vagrant",
+    "cp /vagrant/conf/nginx.conf /etc/nginx/nginx.conf",
+    "kill -HUP `cat /var/run/nginx.pid`" # reload nginx config
+  ].join(' && ')
 
   # Enable provisioning with chef server, specifying the chef server URL,
   # and the path to the validation key (relative to this Vagrantfile).
